@@ -1,18 +1,16 @@
-# هذا الكود مُصمم ليُشغّل باستخدام Streamlit محليًا على جهازك
-# تأكد أنك لا تستخدم Google Colab لأن Streamlit لا يعمل عليه مباشرة
-
-# لتشغيل الكود:
-# 1. انسخه في ملف اسمه app.py
-# 2. من الطرفية (Terminal) شغل الأمر: streamlit run app.py
 
 import streamlit as st
+import pandas as pd
+import os
+
+RESULTS_FILE = "/mnt/data/math_quiz_results.csv"
 
 # --- تقييم الإجابات ---
 def evaluate_score(answers):
     score = 0
     correct_answers = ["1/2", "3/4", "3/4"]
     for i in range(3):
-        if answers[i].strip().replace(" ", "") == correct_answers[i]:
+        if answers[i] == correct_answers[i]:
             score += 1
     return score
 
@@ -25,25 +23,44 @@ def get_explanation(level):
     else:
         return "يمكنك جمع وطرح وضرب الكسور. مثلًا: 1/2 + 1/4 = 3/4. وعند ضرب الكسور: 1/2 × 4 = 2."
 
-# --- واجهة Streamlit ---
+# --- حفظ النتيجة ---
+def save_result(name, score, level):
+    df_new = pd.DataFrame([{"الاسم": name, "الدرجة": score, "المستوى": level}])
+    if os.path.exists(RESULTS_FILE):
+        df = pd.read_csv(RESULTS_FILE)
+        df = pd.concat([df, df_new], ignore_index=True)
+    else:
+        df = df_new
+    df.to_csv(RESULTS_FILE, index=False)
+
+# --- نجوم التشجيع ---
+def stars(score):
+    return "⭐" * score + "☆" * (3 - score)
+
+# --- الواجهة ---
 st.set_page_config(page_title="مساعد الكسور", page_icon="🔢")
 st.title("🔢 مساعد الرياضيات الذكي - درس الكسور")
 
-st.write("أدخل اسمك أولاً:")
-name = st.text_input("الاسم")
+name = st.text_input("أدخل اسمك:")
 
 if name:
-    st.write(f"أهلاً {name}! هنسألك 3 أسئلة بسيطة علشان نعرف مستواك في الكسور:")
+    st.write(f"أهلاً {name}! اختر الإجابات الصحيحة من الخيارات التالية:")
 
-    with st.form("quiz_form"):
-        q1 = st.text_input("1️⃣ ما هو نصف الواحد؟ (اكتب الكسر)")
-        q2 = st.text_input("2️⃣ ما هو الكسر الذي يمثل ثلاثة أرباع؟ (اكتب الكسر)")
-        q3 = st.text_input("3️⃣ ما ناتج: 1/2 + 1/4 = ؟ (اكتب الناتج على شكل كسر مثل 3/4)")
-        submitted = st.form_submit_button("أرسل الإجابات")
+    st.markdown("### 1️⃣ ما هو نصف الواحد؟")
+    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Fraction_1-2.svg/220px-Fraction_1-2.svg.png", width=100)
+    q1 = st.radio("اختر الإجابة:", ["1/3", "1/2", "2/3"], key="q1")
 
-    if submitted:
-        score = evaluate_score([q1, q2, q3])
+    st.markdown("### 2️⃣ ما هو الكسر الذي يمثل ثلاثة أرباع؟")
+    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Fraction_3-4.svg/220px-Fraction_3-4.svg.png", width=100)
+    q2 = st.radio("اختر الإجابة:", ["1/4", "3/4", "2/4"], key="q2")
 
+    st.markdown("### 3️⃣ ما ناتج: 1/2 + 1/4 = ؟")
+    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Fraction_3-4.svg/220px-Fraction_3-4.svg.png", width=100)
+    q3 = st.radio("اختر الإجابة:", ["2/4", "3/4", "4/4"], key="q3")
+
+    if st.button("أرسل الإجابات"):
+        answers = [q1, q2, q3]
+        score = evaluate_score(answers)
         if score <= 1:
             level = "مبتدئ"
         elif score == 2:
@@ -51,9 +68,17 @@ if name:
         else:
             level = "متقدم"
 
-        st.success(f"👍 مستواك: {level}")
+        st.success(f"👍 مستواك: {level}  {stars(score)}")
         explanation = get_explanation(level)
         st.markdown("---")
         st.markdown(f"### الشرح المناسب ليك:")
         st.info(explanation)
+        save_result(name, score, level)
         st.balloons()
+
+    if st.button("إعادة المحاولة"):
+        st.experimental_rerun()
+else:
+    st.info("يرجى إدخال الاسم للبدء بالاختبار.")
+
+        
