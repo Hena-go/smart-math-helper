@@ -1,9 +1,9 @@
-
 import streamlit as st
 import pandas as pd
 import os
 
-RESULTS_FILE = "/mnt/data/math_quiz_results.csv"
+# استخدم ملف تخزين محلي مناسب لمكان Streamlit Cloud
+RESULTS_FILE = "math_quiz_results.csv"
 
 # --- تقييم الإجابات ---
 def evaluate_score(answers):
@@ -23,15 +23,48 @@ def get_explanation(level):
     else:
         return "يمكنك جمع وطرح وضرب الكسور. مثلًا: 1/2 + 1/4 = 3/4. وعند ضرب الكسور: 1/2 × 4 = 2."
 
+# --- نصائح ---
+def get_tips(level):
+    if level == "مبتدئ":
+        return (
+            "👨‍🏫 **نصائح للمربي:** استخدم أدوات بصرية مثل قطع الكسور أو الفواكه.",
+            "👦 **نصائح للطالب:** حاول تقسيم أشياء حولك إلى أنصاف وأرباع لتفهم الكسر عمليًا."
+        )
+    elif level == "متوسط":
+        return (
+            "👨‍🏫 **نصائح للمربي:** شجع الطالب على إجراء عمليات جمع وطرح بسيطة للكسور.",
+            "👦 **نصائح للطالب:** تدرب على مقارنة الكسور وتبسيطها."
+        )
+    else:
+        return (
+            "👨‍🏫 **نصائح للمربي:** شجع الطالب على ربط الكسور بالحياة اليومية (مثل الطهي أو الوقت).",
+            "👦 **نصائح للطالب:** جرب حل مسائل منوعة تشمل ضرب وطرح الكسور وتطبيقها في مواقف حقيقية."
+        )
+
+# --- فيديو توضيحي ---
+def get_video_url(level):
+    if level == "مبتدئ":
+        return "https://www.youtube.com/embed/At6VjUqah6A"
+    elif level == "متوسط":
+        return "https://www.youtube.com/embed/3v6tw7v2D7Q"
+    else:
+        return "https://www.youtube.com/embed/YJPl1v9aL2k"
+
 # --- حفظ النتيجة ---
 def save_result(name, score, level):
     df_new = pd.DataFrame([{"الاسم": name, "الدرجة": score, "المستوى": level}])
-    if os.path.exists(RESULTS_FILE):
-        df = pd.read_csv(RESULTS_FILE)
-        df = pd.concat([df, df_new], ignore_index=True)
-    else:
-        df = df_new
-    df.to_csv(RESULTS_FILE, index=False)
+    try:
+        parent_dir = os.path.dirname(RESULTS_FILE)
+        if parent_dir and not os.path.exists(parent_dir):
+            os.makedirs(parent_dir)
+        if os.path.exists(RESULTS_FILE):
+            df = pd.read_csv(RESULTS_FILE)
+            df = pd.concat([df, df_new], ignore_index=True)
+        else:
+            df = df_new
+        df.to_csv(RESULTS_FILE, index=False)
+    except Exception as e:
+        st.warning("لم نتمكن من حفظ النتيجة. تأكد من صلاحيات الكتابة في بيئة التشغيل.")
 
 # --- نجوم التشجيع ---
 def stars(score):
@@ -70,9 +103,20 @@ if name:
 
         st.success(f"👍 مستواك: {level}  {stars(score)}")
         explanation = get_explanation(level)
+        tips_teacher, tips_student = get_tips(level)
+        video_url = get_video_url(level)
+
         st.markdown("---")
-        st.markdown(f"### الشرح المناسب ليك:")
+        st.markdown("### الشرح المناسب ليك:")
         st.info(explanation)
+
+        st.markdown("### 📘 نصائح:")
+        st.markdown(tips_teacher)
+        st.markdown(tips_student)
+
+        st.markdown("### 🎬 فيديو توضيحي:")
+        st.video(video_url)
+
         save_result(name, score, level)
         st.balloons()
 
@@ -80,5 +124,3 @@ if name:
         st.experimental_rerun()
 else:
     st.info("يرجى إدخال الاسم للبدء بالاختبار.")
-
-        
