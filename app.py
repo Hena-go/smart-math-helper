@@ -121,6 +121,6 @@ if name:
         st.balloons()
 
     if st.button("إعادة المحاولة"):
-        st.experimental_rerun()
+        st.rerun()
 else:
     st.info("يرجى إدخال الاسم للبدء بالاختبار.")
